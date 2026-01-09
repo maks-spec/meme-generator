@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://MaKsIm000.pythonanywhere.com/sitemap.xml

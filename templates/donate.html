@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <!-- PWA мета-теги -->
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Meme Generator">
+
+    <!-- Иконки для разных устройств -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-152.png') }}">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='img/icon-512.png') }}">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поддержать проект | Генератор мемов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        
+        .container {
+            background-color: #2d2d2d;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 40px;
+        }
+        
+        .main-list {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .list_item a {
+            text-decoration: none;
+            color: #fff;
+            font-weight: bold;
+            transition: color 0.3s ease;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        
+        .list_item a:hover {
+            color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .donate-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .donate-title {
+            color: #4CAF50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .donate-description {
+            font-size: 1.2em;
+            color: #ccc;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .payment-methods {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .payment-method {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #444;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .payment-method:hover {
+            border-color: #4CAF50;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.2);
+            background: rgba(76, 175, 80, 0.05);
+        }
+        
+        .payment-method::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .payment-method:hover::before {
+            left: 100%;
+        }
+        
+        .method-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(76, 175, 80, 0.5));
+        }
+        
+        .method-title {
+            font-size: 1.5em;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .method-details {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #444;
+        }
+        
+        .method-info {
+            font-size: 1.1em;
+            color: #fff;
+            margin: 10px 0;
+            word-wrap: break-word;
+            font-weight: bold;
+        }
+        
+        .bank-info {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        .meme-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            color: white;
+        }
+        
+        .meme-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+        }
+        
+        .copied-message {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .support-text {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+            font-size: 1.1em;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .support-text::before {
+            content: '✨';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5em;
+            opacity: 0.7;
+        }
+        
+        .real-time-preview {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .action-buttons button {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Логотип генератора мемов" width="50" height="50">
+            <ul class="main-list">
+                <li class="list_item"><a href="/">Главная</a></li>
+                <li class="list_item"><a href="/ai">ИИ-мем</a></li>
+                <li class="list_item"><a href="https://t.me/mem_generation" target="_blank">Telegram-канал</a></li>
+            </ul>
+        </header>
+
+        <div class="donate-container">
+            <h1 class="donate-title pulse">💝 Поддержать проект</h1>
+            
+            <p class="donate-description">
+                Спасибо за интерес к моему проекту! Если вам нравится то, что я делаю, 
+                вы можете поддержать его развитие, отправив донат на один из следующих реквизитов:
+            </p>
+
+            <div class="payment-methods">
+                <div class="payment-method" onclick="copyToClipboard('Телефон:+79818076618, Банк:БСПБ, Имя:Максим.'); showCopiedMessage('phone');">
+                    <div class="method-icon">📱</div>
+                    <h3 class="method-title">По номеру телефона</h3>
+                    <div class="method-details">
+                        <div class="method-info">+7 981 807-66-18</div>
+                        <div class="bank-info">Банк: БСПБ</div>
+                        <div class="bank-info">Имя: Максим</div>
+                        <div class="bank-info">Нажмите для копирования реквизитов</div>
+                    </div>
+                    <div class="copied-message" id="copied-phone">✅ Скопировано в буфер обмена!</div>
+                </div>
+
+                <div class="payment-method" onclick="copyToClipboard('2200330589615788'); showCopiedMessage('card');">
+                    <div class="method-icon">💳</div>
+                    <h3 class="method-title">По номеру карты</h3>
+                    <div class="method-details">
+                        <div class="method-info">2200 3305 8961 5788</div>
+                        <div class="bank-info">Нажмите для копирования номера карты</div>
+                    </div>
+                    <div class="copied-message" id="copied-card">✅ Скопировано в буфер обмена!</div>
+                </div>
+            </div>
+
+            <div class="support-text">
+                🚀 <strong>Ваша поддержка очень важна для меня!</strong><br>
+                Она помогает развивать проект дальше, добавлять новые функции и улучшать существующие.
+                Каждое пожертвование мотивирует продолжать работу над проектом! 💪
+            </div>
+
+            <div class="action-buttons">
+                <button class="meme-button" onclick="location.href='/'">← Вернуться на главную</button>
+            </div>
+
+            <div class="real-time-preview" id="realTimePreview">
+                🔄 Реквизиты скопированы в буфер обмена!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                console.log('Текст успешно скопирован в буфер обмена: ' + text);
+            }, function(err) {
+                console.error('Не удалось скопировать текст: ', err);
+                alert('Не удалось скопировать текст. Скопируйте вручную: ' + text);
+            });
+        }
+
+        function showCopiedMessage(type) {
+            // Скрываем все сообщения
+            document.querySelectorAll('.copied-message').forEach(msg => {
+                msg.style.display = 'none';
+            });
+            
+            // Показываем нужное сообщение
+            const message = document.getElementById(`copied-${type}`);
+            message.style.display = 'block';
+            
+            // Показываем общее уведомление
+            const preview = document.getElementById('realTimePreview');
+            preview.style.display = 'block';
+            
+            setTimeout(function() {
+                preview.style.display = 'none';
+            }, 3000);
+        }
+
+        // Добавляем анимацию при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            const methods = document.querySelectorAll('.payment-method');
+            methods.forEach((method, index) => {
+                method.style.opacity = '0';
+                method.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    method.style.transition = 'all 0.5s ease';
+                    method.style.opacity = '1';
+                    method.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+    <script>
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('{{ url_for("static", filename="service-worker.js") }}')
+            .then(registration => {
+                console.log('ServiceWorker зарегистрирован:', registration);
+            })
+            .catch(error => {
+                console.log('Ошибка регистрации ServiceWorker:', error);
+            });
+        });
+        }
+    </script>
+</body>
+</html>

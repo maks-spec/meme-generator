@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <!-- PWA мета-теги -->
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Meme Generator">
+
+  <!-- Иконки для разных устройств -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-152.png') }}">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='img/icon-512.png') }}">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генератор мемов онлайн | Создай свой мем легко</title>
+  <meta name="description" content="Создай свой мем онлайн бесплатно! Удобный генератор мемов с настройкой текста, цвета, шрифтов и расположения.">
+  <meta name="keywords" content="генератор мемов, создать мем, мем онлайн, meme generator, мемы бесплатно">
+
+  <meta property="og:title" content="Генератор мемов онлайн">
+  <meta property="og:description" content="Создавай уникальные мемы онлайн бесплатно и делись ими с друзьями.">
+  <meta property="og:type" content="website">
+
+  <link rel="icon" href="{{ url_for('static', filename='img/logo.svg') }}" type="image/svg+xml">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .meme-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .meme-blocks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 768px) {
+      .meme-blocks {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-area {
+      border: 3px dashed #fff;
+      border-radius: 15px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+
+    .upload-area.dragover {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.2);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    #imagePreview {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 10px;
+      display: none;
+      margin: 20px auto;
+      border: 2px solid #fff;
+    }
+
+    .meme-button {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 10px 5px;
+      color: white;
+    }
+
+    .meme-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .meme-button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .settings-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .setting-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .setting-item label {
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .setting-input {
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #555;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .color-inputs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .color-input {
+      width: 50px;
+      height: 40px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .text-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .text-area {
+      width: 100%;
+      height: 80px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #555;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .text-area:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .preview-area {
+      text-align: center;
+      position: relative;
+    }
+
+    #memeCanvas {
+      max-width: 100%;
+      max-height: 500px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      display: none;
+    }
+
+    .download-section {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .action-buttons button {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .real-time-preview {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid #4CAF50;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px 0;
+      text-align: center;
+      display: none;
+    }
+
+    /* Стили для модального окна шаблонов */
+    .templates-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .templates-modal-content {
+      background: #2d2d2d;
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      width: 800px;
+    }
+
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .template-item {
+      cursor: pointer;
+      border: 2px solid #555;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .template-item:hover {
+      border-color: #4CAF50;
+      transform: translateY(-5px);
+    }
+
+    .template-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+
+    .template-name {
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+      color: #fff;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .template-button {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    /* Стили для кнопки установки PWA под бегущей строкой */
+    .pwa-install-container {
+      text-align: center;
+      margin: 15px auto;
+      max-width: 1200px;
+      padding: 0 20px;
+    }
+    
+    .pwa-install-btn {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 10px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: none;
+      margin: 10px auto;
+    }
+
+    .pwa-install-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    }
+  </style>
+  <meta name="google-site-verification" content="9cgZ2LZmsgqLgMxmD55mnjnse5XryeVesFWeZOg_qPY" />
+  <meta name="google-site-verification" content="PUaRKBHKxgGsYHU6ysdWAfV1XLBaa0IQuzRfgkgAuXA" />
+</head>
+<body>
+<header class="header">
+  <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Логотип генератора мемов" width="50" height="50">
+  <ul class="main-list">
+    <li class="list_item"><a href="/">Главная</a></li>
+    <li class="list_item"><a href="/ai">ИИ-мем</a></li>
+    <li class="list_item"><a href="https://t.me/mem_generation" target="_blank">Telegram-канал</a></li>
+    <li class="list_item"><a href="{{ url_for('donate') }}" class="button">Поддержать проект</a></li>
+  </ul>
+</header>
+
+<div class="marquee-container">
+  <div class="marquee">
+    <span>{{ бегущая_строка }}</span>
+  </div>
+</div>
+
+<!-- Контейнер для кнопки установки PWA (под бегущей строкой) -->
+<div class="pwa-install-container">
+  <button id="installButton" class="pwa-install-btn">
+    📱 Установить приложение
+  </button>
+</div>
+
+<div class="meme-container">
+  <h1>🎨 Создай свой мем!</h1>
+  <p>Загрузите изображение и настройте текст в реальном времени</p>
+
+  <div class="meme-blocks">
+    <div>
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📁</div>
+        <h3>Перетащите сюда изображение</h3>
+        <p>или нажмите для выбора файла</p>
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        <button class="meme-button" onclick="document.getElementById('imageUpload').click()">
+          Выбрать файл
+        </button>
+      </div>
+
+      <!-- Кнопка выбора шаблонов -->
+      <div class="templates-section">
+        <button class="meme-button template-button" onclick="loadTemplates()">
+          🎭 Выбрать шаблон
+        </button>
+      </div>
+
+      <img id="imagePreview" alt="Превью изображения">
+
+      <div class="text-inputs">
+        <div class="setting-item">
+          <label for="textTop">Текст сверху:</label>
+          <textarea id="textTop" class="text-area" placeholder="Введите текст для верхней части мема..."></textarea>
+        </div>
+
+        <div class="setting-item">
+          <label for="textBottom">Текст снизу:</label>
+          <textarea id="textBottom" class="text-area" placeholder="Введите текст для нижней части мема..."></textarea>
+        </div>
+      </div>
+
+      <div class="settings-panel">
+        <h3>🎨 Настройки текста:</h3>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="textTopX">Верхний текст - по горизонтали (%)</label>
+            <input type="number" id="textTopX" class="setting-input" value="50" min="0" max="100">
+          </div>
+          
+          <div class="setting-item">
+            <label for="textTopY">Верхний текст - по вертикали (%)</label>
+            <input type="number" id="textTopY" class="setting-input" value="20" min="0" max="100">
+          </div>
+          
+          <div class="setting-item">
+            <label for="textBottomX">Нижний текст - по горизонтали (%)</label>
+            <input type="number" id="textBottomX" class="setting-input" value="50" min="0" max="100">
+          </div>
+          
+          <div class="setting-item">
+            <label for="textBottomY">Нижний текст - по вертикали (%)</label>
+            <input type="number" id="textBottomY" class="setting-input" value="80" min="0" max="100">
+          </div>
+          
+          <div class="setting-item">
+            <label for="fontSize">Размер шрифта</label>
+            <input type="number" id="fontSize" class="setting-input" value="30" min="10" max="100">
+          </div>
+          
+          <div class="setting-item">
+            <label>Цвета текста</label>
+            <div class="color-inputs">
+              <input type="color" id="textColor" class="color-input" value="#ffffff">
+              <span>Текст</span>
+              <input type="color" id="strokeColor" class="color-input" value="#000000">
+              <span>Обводка</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="meme-button" onclick="updateMemePreview()">🔄 Обновить превью</button>
+        <button class="meme-button" onclick="downloadMeme()">💾 Скачать мем</button>
+        <button class="meme-button" onclick="clearAll()">🗑️ Очистить все</button>
+      </div>
+
+      <div class="real-time-preview" id="realTimePreview">
+        🔄 Превью обновляется в реальном времени
+      </div>
+    </div>
+
+    <div class="preview-area">
+      <h3>👀 Предпросмотр мема:</h3>
+      <canvas id="memeCanvas"></canvas>
+      <div class="download-section" id="downloadSection" style="display: none;">
+        <a id="downloadLink" download="my-meme.jpg">
+          <button class="meme-button">📥 Скачать готовый мем</button>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно выбора шаблонов -->
+<div id="templatesModal" class="templates-modal">
+  <div class="templates-modal-content">
+    <div class="modal-header">
+      <h2 style="color: white; margin: 0;">Выберите шаблон</h2>
+      <button class="close-button" onclick="closeTemplatesModal()">×</button>
+    </div>
+    <div id="templatesGrid" class="templates-grid">
+      <!-- Шаблоны будут загружены здесь -->
+    </div>
+    <div style="text-align: center;">
+      <button class="meme-button" onclick="closeTemplatesModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Скрипт для PWA установки
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Предотвращаем автоматический показ подсказки
+  e.preventDefault();
+  // Сохраняем событие для использования позже
+  deferredPrompt = e;
+  
+  // Показываем кнопку установки
+  const installButton = document.getElementById('installButton');
+  if (installButton) {
+    installButton.style.display = 'inline-block';
+    
+    installButton.addEventListener('click', async () => {
+      // Скрываем кнопку
+      installButton.style.display = 'none';
+      
+      // Показываем подсказку установки
+      deferredPrompt.prompt();
+      
+      // Ждем ответа пользователя
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('Пользователь установил PWA');
+      } else {
+        console.log('Пользователь отказался от установки');
+        // Можно снова показать кнопку через некоторое время
+        setTimeout(() => {
+          installButton.style.display = 'inline-block';
+        }, 3000);
+      }
+      
+      deferredPrompt = null;
+    });
+  }
+});
+
+// Отслеживание успешной установки
+window.addEventListener('appinstalled', (evt) => {
+  console.log('Приложение успешно установлено!');
+  const installButton = document.getElementById('installButton');
+  if (installButton) {
+    installButton.style.display = 'none';
+  }
+});
+
+// Проверяем, не установлено ли уже приложение
+window.addEventListener('load', () => {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                      window.navigator.standalone === true;
+  
+  if (isStandalone) {
+    console.log('Приложение уже установлено');
+    const installButton = document.getElementById('installButton');
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+  }
+});
+
+// Основной скрипт для генератора мемов
+const settings = {
+    image: null,
+    textTop: '',
+    textBottom: '',
+    textTopX: 50,
+    textTopY: 20,
+    textBottomX: 50,
+    textBottomY: 80,
+    fontSize: 30,
+    textColor: '#ffffff',
+    strokeColor: '#000000'
+};
+
+// Функции для работы с шаблонами
+async function loadTemplates() {
+    try {
+        const response = await fetch('/get_templates');
+        const templates = await response.json();
+        showTemplatesModal(templates);
+    } catch (error) {
+        console.error('Ошибка загрузки шаблонов:', error);
+        alert('Ошибка загрузки шаблонов');
+    }
+}
+
+function showTemplatesModal(templates) {
+    const modal = document.getElementById('templatesModal');
+    const grid = document.getElementById('templatesGrid');
+    
+    grid.innerHTML = '';
+    
+    if (templates.length === 0) {
+        grid.innerHTML = '<p style="color: white; text-align: center; grid-column: 1 / -1;">Шаблоны не найдены</p>';
+    } else {
+        templates.forEach(template => {
+            const templateItem = document.createElement('div');
+            templateItem.className = 'template-item';
+            templateItem.innerHTML = `
+                <img src="${template.path}" alt="${template.filename}" class="template-image">
+                <div class="template-name">${template.filename}</div>
+            `;
+            templateItem.onclick = () => selectTemplate(template.filename);
+            grid.appendChild(templateItem);
+        });
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeTemplatesModal() {
+    document.getElementById('templatesModal').style.display = 'none';
+}
+
+async function selectTemplate(templateFilename) {
+    try {
+        const response = await fetch('/select_template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ template_filename: templateFilename })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Загружаем выбранный шаблон в превью
+            const preview = document.getElementById('imagePreview');
+            preview.src = result.meme_url;
+            preview.style.display = 'block';
+            settings.image = { name: templateFilename };
+            
+            closeTemplatesModal();
+            showRealTimePreview();
+            
+            // Обновляем настройки
+            updateMemePreview();
+        } else {
+            alert('Ошибка загрузки шаблона: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Ошибка выбора шаблона:', error);
+        alert('Ошибка выбора шаблона');
+    }
+}
+
+// Существующие функции
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+        handleImageUpload(e.target.files[0]);
+    });
+
+    const uploadArea = document.getElementById('uploadArea');
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            handleImageUpload(e.dataTransfer.files[0]);
+        }
+    });
+
+    document.getElementById('textTop').addEventListener('input', function(e) {
+        settings.textTop = e.target.value;
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textBottom').addEventListener('input', function(e) {
+        settings.textBottom = e.target.value;
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textTopX').addEventListener('input', function(e) {
+        settings.textTopX = parseInt(e.target.value);
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textTopY').addEventListener('input', function(e) {
+        settings.textTopY = parseInt(e.target.value);
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textBottomX').addEventListener('input', function(e) {
+        settings.textBottomX = parseInt(e.target.value);
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textBottomY').addEventListener('input', function(e) {
+        settings.textBottomY = parseInt(e.target.value);
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('fontSize').addEventListener('input', function(e) {
+        settings.fontSize = parseInt(e.target.value);
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('textColor').addEventListener('input', function(e) {
+        settings.textColor = e.target.value;
+        debouncedUpdatePreview();
+    });
+
+    document.getElementById('strokeColor').addEventListener('input', function(e) {
+        settings.strokeColor = e.target.value;
+        debouncedUpdatePreview();
+    });
+});
+
+function handleImageUpload(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+    }
+
+    const preview = document.getElementById('imagePreview');
+    const url = URL.createObjectURL(file);
+    
+    preview.onload = function() {
+        URL.revokeObjectURL(url);
+        setTimeout(updateMemePreview, 100);
+    };
+    
+    preview.src = url;
+    preview.style.display = 'block';
+    settings.image = file;
+    
+    showRealTimePreview();
+}
+
+function updateMemePreview() {
+    if (!settings.image) {
+        alert('Пожалуйста, сначала загрузите изображение');
+        return;
+    }
+
+    const canvas = document.getElementById('memeCanvas');
+    const ctx = canvas.getContext('2d');
+    const preview = document.getElementById('imagePreview');
+
+    canvas.width = preview.naturalWidth;
+    canvas.height = preview.naturalHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(preview, 0, 0, canvas.width, canvas.height);
+
+    const fontSize = Math.max(settings.fontSize, canvas.width / 50);
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const strokeWidth = Math.max(2, fontSize / 10);
+
+    function drawText(text, xPercent, yPercent) {
+        if (!text) return;
+
+        const x = (canvas.width * xPercent) / 100;
+        const y = (canvas.height * yPercent) / 100;
+
+        ctx.strokeStyle = settings.strokeColor;
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeText(text, x, y);
+
+        ctx.fillStyle = settings.textColor;
+        ctx.fillText(text, x, y);
+    }
+
+    drawText(settings.textTop, settings.textTopX, settings.textTopY);
+
+    drawText(settings.textBottom, settings.textBottomX, settings.textBottomY);
+
+    canvas.style.display = 'block';
+    document.getElementById('downloadSection').style.display = 'block';
+
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    document.getElementById('downloadLink').href = dataUrl;
+
+    showRealTimePreview();
+}
+
+function downloadMeme() {
+    if (!settings.image) {
+        alert('Пожалуйста, сначала загрузите изображение');
+        return;
+    }
+    updateMemePreview();
+    document.getElementById('downloadLink').click();
+}
+
+function clearAll() {
+    settings.image = null;
+    settings.textTop = '';
+    settings.textBottom = '';
+    
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('memeCanvas').style.display = 'none';
+    document.getElementById('downloadSection').style.display = 'none';
+    document.getElementById('textTop').value = '';
+    document.getElementById('textBottom').value = '';
+    document.getElementById('realTimePreview').style.display = 'none';
+    
+    document.getElementById('textTopX').value = 50;
+    document.getElementById('textTopY').value = 20;
+    document.getElementById('textBottomX').value = 50;
+    document.getElementById('textBottomY').value = 80;
+    document.getElementById('fontSize').value = 30;
+    document.getElementById('textColor').value = '#ffffff';
+    document.getElementById('strokeColor').value = '#000000';
+}
+
+let updateTimeout;
+function debouncedUpdatePreview() {
+    clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(updateMemePreview, 300);
+    showRealTimePreview();
+}
+
+function showRealTimePreview() {
+    const preview = document.getElementById('realTimePreview');
+    preview.style.display = 'block';
+    setTimeout(() => {
+        preview.style.display = 'none';
+    }, 2000);
+}
+
+window.addEventListener('load', function() {
+    const savedData = localStorage.getItem('memeSettings');
+    if (savedData) {
+        const savedSettings = JSON.parse(savedData);
+        Object.assign(settings, savedSettings);
+        
+        document.getElementById('textTop').value = settings.textTop || '';
+        document.getElementById('textBottom').value = settings.textBottom || '';
+        document.getElementById('textTopX').value = settings.textTopX || 50;
+        document.getElementById('textTopY').value = settings.textTopY || 20;
+        document.getElementById('textBottomX').value = settings.textBottomX || 50;
+        document.getElementById('textBottomY').value = settings.textBottomY || 80;
+        document.getElementById('fontSize').value = settings.fontSize || 30;
+        document.getElementById('textColor').value = settings.textColor || '#ffffff';
+        document.getElementById('strokeColor').value = settings.strokeColor || '#000000';
+        
+        if (settings.image) {
+            setTimeout(updateMemePreview, 500);
+        }
+    }
+});
+
+window.addEventListener('beforeunload', function() {
+    localStorage.setItem('memeSettings', JSON.stringify(settings));
+});
+</script>
+     <script>
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('{{ url_for("static", filename="service-worker.js") }}')
+            .then(registration => {
+                console.log('ServiceWorker зарегистрирован:', registration);
+            })
+            .catch(error => {
+                console.log('Ошибка регистрации ServiceWorker:', error);
+            });
+        });
+        }
+    </script>
+</body>
+</html>
